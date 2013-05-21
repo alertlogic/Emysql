@@ -218,7 +218,13 @@ add_pool(PoolId, Size, User, Password, Host, Port, Database, Encoding) ->
         encoding = Encoding
     },
     Pool1 = emysql_conn:open_connections(Pool),
-    emysql_conn_mgr:add_pool(Pool1).
+    try
+        emysql_conn_mgr:add_pool(Pool1)
+    catch Error:Reason ->
+        %% avoid leaving open connections behind
+        emysql_conn:async_close_connections(queue:to_list(Pool1#pool.available)),
+        erlang:raise(Error, Reason, erlang:get_stacktrace())
+    end.
 
 %% @spec remove_pool(PoolId) -> ok
 %%      PoolId = atom()
@@ -233,8 +239,8 @@ add_pool(PoolId, Size, User, Password, Host, Port, Database, Encoding) ->
 
 remove_pool(PoolId) ->
     Pool = emysql_conn_mgr:remove_pool(PoolId),
-    [emysql_conn:close_connection(Conn) || Conn <- lists:append(queue:to_list(Pool#pool.available), gb_trees:values(Pool#pool.locked))],
-    ok.
+    Conns = lists:append(queue:to_list(Pool#pool.available), gb_trees:values(Pool#pool.locked)),
+    emysql_conn:async_close_connections(Conns).
 
 %% @spec increment_pool_size(PoolId, By) -> Result
 %%      PoolId = atom()
@@ -243,7 +249,8 @@ remove_pool(PoolId) ->
 %%
 %% @doc Synchronous call to the connection manager to enlarge a pool.
 %%
-%% This opens n=By new connections and adds them to the pool of id PoolId.
+%% This opens up to n=By new connections and adds them to the pool of id PoolId.
+%% Errors encountered while trying to open new connections are silently ignored.
 %%
 %% === Implementation ===
 %%
@@ -257,7 +264,13 @@ remove_pool(PoolId) ->
 
 increment_pool_size(PoolId, Num) when is_integer(Num) ->
     Conns = emysql_conn:open_n_connections(PoolId, Num),
-    emysql_conn_mgr:add_connections(PoolId, Conns).
+    try 
+        emysql_conn_mgr:add_connections(PoolId, Conns)
+    catch Error:Reason ->
+        %% avoid leaving open connections behind
+        emysql_conn:async_close_connections(Conns),
+        erlang:raise(Error, Reason, erlang:get_stacktrace())
+    end.
 
 %% @spec decrement_pool_size(PoolId, By) -> ok
 %%      PoolId = atom()
@@ -283,8 +296,7 @@ increment_pool_size(PoolId, Num) when is_integer(Num) ->
 
 decrement_pool_size(PoolId, Num) when is_integer(Num) ->
     Conns = emysql_conn_mgr:remove_connections(PoolId, Num),
-    [emysql_conn:close_connection(Conn) || Conn <- Conns],
-    ok.
+    emysql_conn:async_close_connections(Conns).
 
 %% @spec prepare(StmtName, Statement) -> ok
 %%      StmtName = atom()
@@ -560,6 +572,12 @@ execute(PoolId, StmtName, Args, Timeout, nonblocking) when is_atom(StmtName), is
 monitor_work(Connection, Timeout, {M,F,A}) when is_record(Connection, emysql_connection) ->
     %% spawn a new process to do work, then monitor that process until
     %% it either dies, returns data or times out.
+    %% FIXME: Rework this mechanism using a dedicated
+    %% supervisor process. Presently, if the calling
+    %% process gets exited (e.g. restarted by its
+    %% supervisor) before the worker can finish or
+    %% the timeout expires, the worker remains orphaned;
+    %% worse, its connection never returns to the pool
     Parent = self(),
     Pid = spawn(
         fun() ->
@@ -603,7 +621,8 @@ monitor_work(Connection, Timeout, {M,F,A}) when is_record(Connection, emysql_con
             %% if we timeout waiting for the process to return,
             %% then reset the connection and throw a timeout error
             %-% io:format("monitor_work: ~p TIMEOUT -> demonitor, reset connection, exit~n", [Pid]),
-            erlang:demonitor(Mref),
+            erlang:demonitor(Mref, [flush]),
+            exit(Pid, {mysql_timeout, Timeout}),
             case emysql_conn:reset_connection(emysql_conn_mgr:pools(), Connection, pass) of
                 {error, FailedReset} ->
                     exit({mysql_timeout, Timeout, {and_conn_reset_failed, FailedReset}});
