@@ -14,5 +14,11 @@
     {mod, {emysql_app, ["%MAKETIME%"]}},
     {registered, []},
     {applications, [kernel, stdlib, crypto]},
-    {env, [{default_timeout, 5000}]}
+    {env, [
+        {default_timeout, 5000},
+        %% TCP socket options for MySQL connections (refer to
+        %% gen_tcp:connect_option()). Useful ones may include {nodelay, true}
+        %% and {linger, {true, 0}}.
+        {socket_options, []}
+    ]}
 ]}.

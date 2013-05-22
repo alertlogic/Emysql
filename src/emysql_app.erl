@@ -25,7 +25,7 @@
 -module(emysql_app).
 -behaviour(application).
 
--export([start/2, stop/1, modules/0, default_timeout/0, lock_timeout/0, pools/0]).
+-export([start/2, stop/1, modules/0, default_timeout/0, lock_timeout/0, socket_options/0, pools/0]).
 
 -include("emysql.hrl").
 
@@ -64,6 +64,17 @@ lock_timeout() ->
         undefined -> ?LOCK_TIMEOUT;
         {ok, Timeout} -> Timeout
     end.
+
+socket_options() ->
+    Options0 = case application:get_env(emysql, socket_options) of
+        undefined -> [];
+        {ok, Options} -> Options
+    end,
+    %% do not let the user override the basic behavior
+    Options1 = proplists:delete(binary, Options0),
+    Options2 = proplists:delete(packet, Options1),
+    Options3 = proplists:delete(active, Options2),
+    [binary, {packet, raw}, {active, false} | Options3].
 
 pools() ->
     case application:get_env(emysql, pools) of
