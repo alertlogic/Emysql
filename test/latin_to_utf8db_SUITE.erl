@@ -1,3 +1,4 @@
+%% coding: latin-1
 %%%-------------------------------------------------------------------
 %%% File     : Emysql/test/latin_to_utf8db_SUITE.erl
 %%% Descr    : Suite #6: Test for Latin-1 connection to UTF-8 DB.
@@ -15,7 +16,7 @@
 %%%-------------------------------------------------------------------
 
 -module(latin_to_utf8db_SUITE).
--compile(export_all).
+-compile([export_all, nowarn_export_all]).
 -include_lib("common_test/include/ct.hrl").
 
 -record(hello_record, {hello_text}).

@@ -1,4 +1,5 @@
 -module(emysql_worker).
+-compile([tuple_calls]).
 -export([behaviour_info/1]).
 
 -export([start/1, execute/2]).

@@ -357,7 +357,7 @@ lock_next_connection(State, Pool, OtherPools) ->
     case queue:out(Pool#pool.available) of
         {{value, Conn}, OtherConns} ->
             %-% io:format("gen srv: lock connection ... found a good next connection~n", []),
-            NewConn = Conn#emysql_connection{locked_at=lists:nth(2, tuple_to_list(now()))},
+            NewConn = Conn#emysql_connection{locked_at=lists:nth(2, tuple_to_list(apply(erlang, now, [])))},
             Locked = gb_trees:enter(NewConn#emysql_connection.id, NewConn, Pool#pool.locked),
             State1 = State#state{pools = [Pool#pool{available=OtherConns, locked=Locked}|OtherPools]},
             {ok, Conn, State1};

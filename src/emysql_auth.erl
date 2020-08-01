@@ -25,7 +25,7 @@
 %% OTHER DEALINGS IN THE SOFTWARE.
 -module(emysql_auth).
 -export([do_handshake/3]).
--compile(export_all).
+-compile([export_all, nowarn_export_all]).
 
 -include("emysql.hrl").
 
@@ -136,14 +136,35 @@ auth(Sock, SeqNum, User, Password, Salt1, Salt2, Plugin) ->
 password_new([], _Salt) ->
     <<>>;
 password_new(Password, Salt) ->
-    Stage1 = crypto:sha(Password),
-    Stage2 = crypto:sha(Stage1),
-    Res = crypto:sha_final(
-        crypto:sha_update(
-            crypto:sha_update(crypto:sha_init(), Salt),
-            Stage2
-        )
-    ),
+    code:ensure_loaded(crypto),
+    {Stage1, Res} = case erlang:function_exported(crypto, hash, 2) of
+        true ->
+            S1 = crypto:hash(sha, Password),
+            S2 = crypto:hash(sha, S1),
+            R = crypto:hash_final(
+                crypto:hash_update(
+                    crypto:hash_update(
+                        crypto:hash_init(sha),
+                        Salt
+                    ),
+                    S2
+                )
+            ),
+            {S1, R};
+        false ->
+            S1 = apply(crypto, sha, [Password]),
+            S2 = apply(crypto, sha, [S1]),
+            R = apply(crypto, sha_final, [
+                apply(crypto, sha_update, [
+                    apply(crypto, sha_update, [
+                        apply(crypto, sha_init, []),
+                        Salt
+                    ]),
+                    S2
+                ])
+            ]),
+            {S1, R}
+    end,
     emysql_util:bxor_binary(Res, Stage1).
 
 password_old(Password, Salt) ->

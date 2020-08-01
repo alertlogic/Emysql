@@ -223,7 +223,7 @@ add_pool(PoolId, Size, User, Password, Host, Port, Database, Encoding) ->
     catch Error:Reason ->
         %% avoid leaving open connections behind
         emysql_conn:async_close_connections(queue:to_list(Pool1#pool.available)),
-        erlang:raise(Error, Reason, erlang:get_stacktrace())
+        erlang:raise(Error, Reason, apply(erlang, get_stacktrace, []))
     end.
 
 %% @spec remove_pool(PoolId) -> ok
@@ -269,7 +269,7 @@ increment_pool_size(PoolId, Num) when is_integer(Num) ->
     catch Error:Reason ->
         %% avoid leaving open connections behind
         emysql_conn:async_close_connections(Conns),
-        erlang:raise(Error, Reason, erlang:get_stacktrace())
+        erlang:raise(Error, Reason, apply(erlang, get_stacktrace, []))
     end.
 
 %% @spec decrement_pool_size(PoolId, By) -> ok

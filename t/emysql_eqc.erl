@@ -5,7 +5,7 @@
 -module(emysql_eqc).
 -behaviour(eqc_statem).
 -export([command/1, initial_state/0, next_state/3, precondition/2, postcondition/3]).
--compile(export_all).
+-compile([tuple_calls, export_all, nowarn_export_all]).
 
 -include_lib("eqc/include/eqc.hrl").
 -include_lib("eqc/include/eqc_statem.hrl").

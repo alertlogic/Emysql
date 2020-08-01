@@ -13,7 +13,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("emysql/include/emysql.hrl").
 
--compile(export_all).
+-compile([export_all, nowarn_export_all]).
 
 test() ->
 

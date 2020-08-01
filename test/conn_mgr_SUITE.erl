@@ -1,3 +1,4 @@
+%% coding: latin-1
 %%%-------------------------------------------------------------------
 %%% File     : Emysql/test/conn_mgr_SUITE.erl
 %%% Descr    : Suite #7 - Testing connection manager. 
@@ -16,7 +17,7 @@
 %%%-------------------------------------------------------------------
 
 -module(conn_mgr_SUITE).
--compile(export_all).
+-compile([export_all, nowarn_export_all]).
 -include_lib("common_test/include/ct.hrl").
 -include_lib("../include/emysql.hrl").
 

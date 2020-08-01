@@ -1,6 +1,6 @@
 -module(emysql_tracer).
 -export([trace_module/1]).
--compile(export_all).
+-compile([export_all, nowarn_export_all]).
 
 trace_module(Fun) ->
     spawn(fun() -> trace_module1(Fun) end).

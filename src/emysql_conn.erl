@@ -137,7 +137,7 @@ open_connections(Pool) ->
                 %% since it's all or nothing, avoid leaving
                 %% any open connections behind
                 async_close_connections(queue:to_list(Pool#pool.available)),
-                erlang:raise(Error, Reason, erlang:get_stacktrace())
+                erlang:raise(Error, Reason, apply(erlang, get_stacktrace, []))
             end,
             %-% io:format("opened connection: ~p~n", [Conn]),
             open_connections(Pool#pool{available = queue:in(Conn, Pool#pool.available)});
@@ -195,7 +195,7 @@ open_connection(#pool{pool_id=PoolId, host=Host, port=Port, user=User, password=
                 %% added to the pool, so close it before
                 %% propagating the exception
                 spawn(fun() -> gen_tcp:close(Sock) end),
-                erlang:raise(Error, Reason, erlang:get_stacktrace())
+                erlang:raise(Error, Reason, apply(erlang, get_stacktrace, []))
             end;
         {error, Reason} ->
              %-% io:format("~p open connection: ... ERROR ~p~n", [self(), Reason]),

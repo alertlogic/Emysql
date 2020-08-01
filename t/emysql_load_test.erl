@@ -17,7 +17,7 @@
 -export([start_link/0, init/1, handle_call/3, handle_cast/2, handle_info/2]).
 -export([terminate/2, code_change/3]).
 
--compile(export_all).
+-compile([export_all, nowarn_export_all]).
 
 -include_lib("emysql/include/emysql.hrl").
 

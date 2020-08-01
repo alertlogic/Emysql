@@ -15,7 +15,7 @@
 %%%-------------------------------------------------------------------
 
 -module(pool_SUITE).
--compile(export_all).
+-compile([export_all, nowarn_export_all]).
 -include_lib("common_test/include/ct.hrl").
 -include_lib("../include/emysql.hrl").
 
@@ -59,7 +59,7 @@ three_pools(_) ->
     #result_packet{} = emysql:execute(test3, "select A from test"),
 
     F=fun() ->
-        timer:sleep(100+random:uniform(500)),
+        timer:sleep(100 + apply(random, uniform, [500])),
             #result_packet{} = emysql:execute(test2, "select b from test"),
             #result_packet{} = emysql:execute(test3, "select A from test"),
         ok
